@@ -17,12 +17,13 @@ using namespace std;
 Point eye, l, r, u;
 int recursionLevel;
 int imageWidth, imageHeight;
-#define WINDOW_WIDTH 700
-#define WINDOW_HEIGHT 700
-#define VIEW_ANGLE 50
+#define windowWidth 800
+#define windowHeight 800
+#define viewAngle 50
 void drawAxes() {
     glBegin(GL_LINES);
     {
+        glColor3f(1, 1, 1);
         glVertex3f(100, 0, 0);
         glVertex3f(-100, 0, 0);
 
@@ -35,18 +36,13 @@ void drawAxes() {
     glEnd();
 }
 
-void createFloor() {
-    Object *floor = new Floor(1000, 20);
-    floor->set_lighting_coefficients(0.3, 0.3, 0.3, 0.1);
-    floor->setShine(1.0);
-    objects.push_back(floor);
-}
+
 
 void loadData() {
 
     int totalObjects, totalLights;
     string objectType;
-    Object *obj;
+    Object *object;
 
     freopen("scene.txt", "r", stdin);
 
@@ -56,101 +52,101 @@ void loadData() {
 
     for (int i = 0; i < totalObjects; i++) {
         cin >> objectType;
-        cout << objectType << endl;
 
         if (objectType == "sphere") {
-
-            double x, y, z; // center
-            double radius; // radius
-            double red, green, blue;
+            Point center;
+            double x, y, z, radius;
+            double r, g, b;
             double ambient, diffuse, specular, reflection;
             double shine;
-
-            Point center;
 
             cin >> x >> y >> z >> radius;
-            center = Point(x, y, z);
-            obj = new Sphere(center, radius);
-
-            cin >> red >> green >> blue;
-            obj->setColor(red, green, blue);
-
+            cin >> r >> g >> b;
             cin >> ambient >> diffuse >> specular >> reflection;
-            obj->set_lighting_coefficients(ambient, diffuse, specular, reflection);
-
             cin >> shine;
-            obj->setShine(shine);
 
-            obj->eta = 10.0;
-
-            objects.push_back(obj);
+            //create sphere
+            center = Point(x, y, z);
+            object = new Sphere(center, radius);
+            //set color
+            object->setColor(r, g, b);
+            //set coefficients
+            object->setCoefficients(ambient, diffuse, specular, reflection);
+            //set shine
+            object->setShine(shine);
+            
+            objects.push_back(object);
+            
         } else if (objectType == "triangle") {
 
-            double x, y, z; // a vertex
-            double red, green, blue;
+            double x, y, z;
+            double r, g, b;
             double ambient, diffuse, specular, reflection;
             double shine;
 
-            Point A, B, C;
+            Point a1, a2, a3;
 
             cin >> x >> y >> z;
-            A = Point(x, y, z);
+            a1 = Point(x, y, z);
 
             cin >> x >> y >> z;
-            B = Point(x, y, z);
+            a2 = Point(x, y, z);
 
             cin >> x >> y >> z;
-            C = Point(x, y, z);
+            a3 = Point(x, y, z);
 
-            obj = new Triangle(A, B, C);
+            object = new Triangle(a1, a2, a3);
 
-            cin >> red >> green >> blue;
-            obj->setColor(red, green, blue);
-
+            cin >> r >> g >> b;
             cin >> ambient >> diffuse >> specular >> reflection;
-            obj->set_lighting_coefficients(ambient, diffuse, specular, reflection);
-
             cin >> shine;
-            obj->setShine(shine);
+            
+            //set color
+            object->setColor(r, g, b);
+            //set coefficients
+            object->setCoefficients(ambient, diffuse, specular, reflection);
+            //set shine
+            object->setShine(shine);
 
-            objects.push_back(obj);
+            objects.push_back(object);
 
         } else if (objectType == "general") {
 
-            double coeff[10];
+            double coefficients[10];
+            Point ori;
             double x, y, z;
             double length, width, height;
-            double red, green, blue;
+            double r, g, b;
             double ambient, diffuse, specular, reflection;
             double shine;
 
-            Point base_point;
 
-            for (int c = 0; c < 10; c++) {
-                cin >> coeff[c];
+            for (int coeff = 0; coeff < 10; coeff++) {
+                cin >> coefficients[coeff];
             }
 
             cin >> x >> y >> z;
-            base_point = Point(x, y, z);
-
             cin >> length >> width >> height;
-            obj = new GeneralQuadratic(coeff, base_point, length, width, height);
+            ori = Point(x, y, z);
 
-            cin >> red >> green >> blue;
-            obj->setColor(red, green, blue);
+            object = new GeneralQuadratic(coefficients, ori, length, width, height);
 
+            cin >> r >> g >> b;
             cin >> ambient >> diffuse >> specular >> reflection;
-            obj->set_lighting_coefficients(ambient, diffuse, specular, reflection);
-
             cin >> shine;
-            obj->setShine(shine);
 
-            objects.push_back(obj);
+            //set color
+            object->setColor(r, g, b);
+            //set coefficients
+            object->setCoefficients(ambient, diffuse, specular, reflection);
+            //set shine
+            object->setShine(shine);
+
+            objects.push_back(object);
         }
     }
 
     cin >> totalLights;
-
     for (int i = 0; i < totalLights; i++) {
         double x, y, z, r, g, b;
         cin >> x >> y >> z;
@@ -170,31 +166,31 @@ void capture() {
         frameBuffer[i] = new Color[imageHeight];
     }
 
-    double plane_distance = (WINDOW_HEIGHT/2)/tan(VIEW_ANGLE*pi/360);
-    Point top_left = eye + (l * plane_distance - r * (WINDOW_WIDTH/2) + u * (WINDOW_HEIGHT/2));
+    double planeDistance = (windowHeight/2)/tan(viewAngle*pi/360);
+    Point topLeft = eye + (l * planeDistance - r * (windowWidth/2) + u * (windowHeight/2));
 
     cout << "Eye : "; eye.print();
-    cout << "Plane distance : " << plane_distance << endl;
-    cout << "top_left : "; top_left.print();
-    cout << "Saving...";
+    cout << "Plane distance : " << planeDistance << endl;
+    cout << "topLeft : "; topLeft.print();
+    cout << "Saving..." << endl;
 
-    double du = (WINDOW_WIDTH*1.0) / imageWidth;
-    double dv = (WINDOW_HEIGHT*1.0) / imageHeight;
+    double du = (windowWidth*1.0) / imageWidth;
+    double dv = (windowHeight*1.0) / imageHeight;
 
     for (int i = 0; i < imageWidth; i++) {
         for (int j = 0; j < imageHeight; j++) {
 
-            Point direction_to_top_left = top_left + r*i*du - u*j*dv;
+            Point direction_to_top_left = topLeft + r*i*du - u*j*dv;
 
             Ray ray(eye, direction_to_top_left - eye);
             double dummy_color[3] = {0.0, 0.0, 0.0};
 
-            pair<double, double> pair = get_nearest(ray);
+            pair<double, double> pair = getNearest(ray);
             int nearest = pair.first;
             double t_min = pair.second;
 
             if(nearest!=-1) {
-                objects[nearest]->fill_color(ray, t_min, dummy_color, 1);
+                objects[nearest]->intersect(ray, t_min, dummy_color, 1);
             }
             frameBuffer[i][j].r = dummy_color[0];
             frameBuffer[i][j].g = dummy_color[1];
@@ -216,7 +212,6 @@ void capture() {
     image.save_image("out.bmp");
 
     cout << "\tSaved\n";
-    cout << "\a";
 }
 
 void freeMemory() {
@@ -370,7 +365,13 @@ void init() {
     r = {1.0, 0.0, 0.0};
     u = {0.0, 0.0, 1.0};
 
-    createFloor();
+    //initialize floor
+    Object *floor = new Floor(1000, 20);
+    floor->setCoefficients(0.3, 0.3, 0.3, 0.1);
+    floor->setShine(1.0);
+    objects.push_back(floor);
+
+
     loadData();
 //    cout << lights[0].lightPos.x << lights[0].lightPos.y << lights[0].lightPos.z << endl;
 //    cout << lights[1].lightPos.x << lights[1].lightPos.y << lights[1].lightPos.z << endl;
@@ -419,6 +420,6 @@ int main(int argc, char **argv) {
     glutMouseFunc(mouseListener);
 
     glutMainLoop();        //The main loop of OpenGL
-
+    freeMemory();
     return 0;
 }
