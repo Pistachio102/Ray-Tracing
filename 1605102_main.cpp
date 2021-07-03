@@ -15,26 +15,27 @@ using namespace std;
 
 
 Point eye, l, r, u;
-int recursion_level;
-int image_width, image_height;
-
+int recursionLevel;
+int imageWidth, imageHeight;
+#define WINDOW_WIDTH 700
+#define WINDOW_HEIGHT 700
+#define VIEW_ANGLE 50
 void drawAxes() {
     glBegin(GL_LINES);
     {
-        glVertex3f( 100,0,0);
-        glVertex3f(-100,0,0);
+        glVertex3f(100, 0, 0);
+        glVertex3f(-100, 0, 0);
 
-        glVertex3f(0,-100,0);
-        glVertex3f(0, 100,0);
+        glVertex3f(0, -100, 0);
+        glVertex3f(0, 100, 0);
 
-        glVertex3f(0,0, 100);
-        glVertex3f(0,0,-100);
+        glVertex3f(0, 0, 100);
+        glVertex3f(0, 0, -100);
     }
     glEnd();
 }
 
-void createFloor()
-{
+void createFloor() {
     Object *floor = new Floor(1000, 20);
     floor->set_lighting_coefficients(0.3, 0.3, 0.3, 0.1);
     floor->setShine(1.0);
@@ -43,20 +44,21 @@ void createFloor()
 
 void loadData() {
 
-    int n_objects, n_lights;
-    string object_type;
+    int totalObjects, totalLights;
+    string objectType;
     Object *obj;
 
     freopen("scene.txt", "r", stdin);
 
-    cin >> recursion_level >> image_width >> n_objects;
-    image_height = image_width;
+    cin >> recursionLevel >> imageWidth >> totalObjects;
+    imageHeight = imageWidth;
+    cout << recursionLevel << imageWidth << totalObjects << endl;
 
-    for (int i = 0; i < n_objects; i++)
-    {
-        cin >> object_type;
+    for (int i = 0; i < totalObjects; i++) {
+        cin >> objectType;
+        cout << objectType << endl;
 
-        if (object_type == "sphere") {
+        if (objectType == "sphere") {
 
             double x, y, z; // center
             double radius; // radius
@@ -82,9 +84,7 @@ void loadData() {
             obj->eta = 10.0;
 
             objects.push_back(obj);
-        }
-
-        else if (object_type == "triangle") {
+        } else if (objectType == "triangle") {
 
             double x, y, z; // a vertex
             double red, green, blue;
@@ -115,9 +115,7 @@ void loadData() {
 
             objects.push_back(obj);
 
-        }
-
-        else if (object_type == "general") {
+        } else if (objectType == "general") {
 
             double coeff[10];
             double x, y, z;
@@ -129,7 +127,7 @@ void loadData() {
             Point base_point;
 
             for (int c = 0; c < 10; c++) {
-                cin>>coeff[c];
+                cin >> coeff[c];
             }
 
             cin >> x >> y >> z;
@@ -151,20 +149,85 @@ void loadData() {
         }
     }
 
-    cin >> n_lights;
-    for (int i = 0; i < n_lights; i++) {
-        double x, y, z;
-        cin >> x >> y >> z;
+    cin >> totalLights;
 
-        Point light(x, y, z);
+    for (int i = 0; i < totalLights; i++) {
+        double x, y, z, r, g, b;
+        cin >> x >> y >> z;
+        cin >> r >> g >> b;
+
+        Point pos(x, y, z);
+        Light *light = new Light(pos, r, g, b);
         lights.push_back(light);
     }
 }
 
-void keyboardListener(unsigned char key, int x, int y)
-{
-    switch (key)
-    {
+void capture() {
+
+    Color** frameBuffer;
+    frameBuffer = new Color* [imageWidth];
+    for (int i=0; i<imageWidth; i++) {
+        frameBuffer[i] = new Color[imageHeight];
+    }
+
+    double plane_distance = (WINDOW_HEIGHT/2)/tan(VIEW_ANGLE*pi/360);
+    Point top_left = eye + (l * plane_distance - r * (WINDOW_WIDTH/2) + u * (WINDOW_HEIGHT/2));
+
+    cout << "Eye : "; eye.print();
+    cout << "Plane distance : " << plane_distance << endl;
+    cout << "top_left : "; top_left.print();
+    cout << "Saving...";
+
+    double du = (WINDOW_WIDTH*1.0) / imageWidth;
+    double dv = (WINDOW_HEIGHT*1.0) / imageHeight;
+
+    for (int i = 0; i < imageWidth; i++) {
+        for (int j = 0; j < imageHeight; j++) {
+
+            Point direction_to_top_left = top_left + r*i*du - u*j*dv;
+
+            Ray ray(eye, direction_to_top_left - eye);
+            double dummy_color[3] = {0.0, 0.0, 0.0};
+
+            pair<double, double> pair = get_nearest(ray);
+            int nearest = pair.first;
+            double t_min = pair.second;
+
+            if(nearest!=-1) {
+                objects[nearest]->fill_color(ray, t_min, dummy_color, 1);
+            }
+            frameBuffer[i][j].r = dummy_color[0];
+            frameBuffer[i][j].g = dummy_color[1];
+            frameBuffer[i][j].b = dummy_color[2];
+        }
+    }
+
+    bitmap_image image(imageWidth, imageHeight);
+
+    for (int i=0; i<imageWidth; i++) {
+        for (int j=0; j<imageHeight; j++) {
+            double r = frameBuffer[i][j].r;
+            double g = frameBuffer[i][j].g;
+            double b = frameBuffer[i][j].b;
+            image.set_pixel(i, j, r*255, g*255, b*255);
+        }
+    }
+
+    image.save_image("out.bmp");
+
+    cout << "\tSaved\n";
+    cout << "\a";
+}
+
+void freeMemory() {
+    vector<Light*>().swap(lights);
+    vector<Object*>().swap(objects);
+}
+void keyboardListener(unsigned char key, int x, int y) {
+    switch (key) {
+        case '0':
+            capture();
+            break;
         case '1':
             l = rotate(l, u, 1);
             r = rotate(r, u, 1);
@@ -190,18 +253,15 @@ void keyboardListener(unsigned char key, int x, int y)
             r = rotate(r, l, -1);
             break;
 
-//        case '0':
-//            capture();
-//            break;
+
         default:
             break;
     }
 }
 
 
-void specialKeyListener(int key, int x, int y)
-{
-    switch(key) {
+void specialKeyListener(int key, int x, int y) {
+    switch (key) {
         case GLUT_KEY_DOWN:
             eye = eye - l * unit_dist;
             break;
@@ -229,10 +289,10 @@ void specialKeyListener(int key, int x, int y)
 }
 
 
-void mouseListener(int button, int state, int x, int y) {	//x, y is the x-y of the screen (2D)
+void mouseListener(int button, int state, int x, int y) {    //x, y is the x-y of the screen (2D)
     switch (button) {
         case GLUT_LEFT_BUTTON:
-            if (state == GLUT_DOWN) {		// 2 times?? in ONE click? -- solution is checking DOWN or UP
+            if (state == GLUT_DOWN) {        // 2 times?? in ONE click? -- solution is checking DOWN or UP
                 //drawaxes = 1 - drawaxes;
             }
             break;
@@ -284,6 +344,12 @@ void display() {
 
     drawAxes();
 
+    for (int i = 0; i < objects.size(); i++)
+        objects[i]->draw();
+
+    for (int i = 0; i < lights.size(); i++)
+        lights[i]->draw();
+
 
     //ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
     glutSwapBuffers();
@@ -300,12 +366,16 @@ void animate() {
 void init() {
     //codes for initialization
     eye = {0, -200, 30};
-    l = { 0.0, 1.0, 0.0 };
-    r = { 1.0, 0.0, 0.0 };
-    u = { 0.0, 0.0, 1.0 };
+    l = {0.0, 1.0, 0.0};
+    r = {1.0, 0.0, 0.0};
+    u = {0.0, 0.0, 1.0};
 
     createFloor();
     loadData();
+//    cout << lights[0].lightPos.x << lights[0].lightPos.y << lights[0].lightPos.z << endl;
+//    cout << lights[1].lightPos.x << lights[1].lightPos.y << lights[1].lightPos.z << endl;
+//    cout << lights[2].lightPos.x << lights[2].lightPos.y << lights[2].lightPos.z << endl;
+//    cout << lights[3].lightPos.x << lights[3].lightPos.y << lights[3].lightPos.z << endl;
 
     //clear the screen
     glClearColor(0, 0, 0, 0);

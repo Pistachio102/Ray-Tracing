@@ -6,9 +6,33 @@
 
 #IncludeRegexTransform: 
 
-/home/nisa/Desktop/Ray-Tracing/main.cpp
+/home/nisa/Desktop/Ray-Tracing/1605102_classes.h
+
+/home/nisa/Desktop/Ray-Tracing/1605102_main.cpp
 bits/stdc++.h
 -
 GL/glut.h
+-
+bitmap_image.hpp
+/home/nisa/Desktop/Ray-Tracing/bitmap_image.hpp
+1605102_classes.h
+/home/nisa/Desktop/Ray-Tracing/1605102_classes.h
+
+/home/nisa/Desktop/Ray-Tracing/bitmap_image.hpp
+algorithm
+-
+cmath
+-
+cstdlib
+-
+fstream
+-
+iostream
+-
+iterator
+-
+limits
+-
+string
 -
 
