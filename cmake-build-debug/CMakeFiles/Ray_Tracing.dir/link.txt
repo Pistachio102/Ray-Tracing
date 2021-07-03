@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/Ray_Tracing.dir/1605102_main.cpp.o -o Ray_Tracing  -lglut -lGLU -lGL 
