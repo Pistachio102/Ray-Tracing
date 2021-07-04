@@ -18,26 +18,26 @@ public:
 
     Point() = default;
 
-    Point(double x, double y, double z) {
-        this->x = x;
-        this->y = y;
-        this->z = z;
+    Point(double x1, double y1, double z1) {
+        x = x1;
+        y = y1;
+        z = z1;
     }
 
-    Point operator+(Point p) {
-        return {this->x + p.x, this->y + p.y, this->z + p.z};
+    Point operator+(Point point) {
+        return {this->x + point.x, this->y + point.y, this->z + point.z};
     }
 
-    Point operator-(Point p) {
-        return {this->x - p.x, this->y - p.y, this->z - p.z};
+    Point operator-(Point point) {
+        return {this->x - point.x, this->y - point.y, this->z - point.z};
     }
 
-    Point operator*(double scale) {
-        return {this->x * scale, this->y * scale, this->z * scale};
+    Point operator*(double mult) {
+        return {this->x * mult, this->y * mult, this->z * mult};
     }
 
-    Point operator/(double scale) {
-        return {this->x / scale, this->y / scale, this->z / scale};
+    Point operator/(double div) {
+        return {this->x / div, this->y / div, this->z / div};
     }
 
     Point normalize() {
@@ -48,29 +48,29 @@ public:
         return sqrt(x * x + y * y + z * z);
     }
 
-    friend double dotProduct(Point p1, Point p2) {
-        return p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+    friend double dotProduct(Point point1, Point point2) {
+        return point1.x * point2.x + point1.y * point2.y + point1.z * point2.z;
     }
 
-    friend Point crossProduct(Point p1, Point p2) {
-        double a = p1.y * p2.z - p1.z * p2.y;
-        double b = p1.z * p2.x - p1.x * p2.z;
-        double c = p1.x * p2.y - p1.y * p2.x;
+    friend Point crossProduct(Point point1, Point point2) {
+        double a = point1.y * point2.z - point1.z * point2.y;
+        double b = point1.z * point2.x - point1.x * point2.z;
+        double c = point1.x * point2.y - point1.y * point2.x;
 
         return {a, b, c};
     }
 
-    friend Point rotate(Point vec, Point ref, double directionSign) {
+    friend Point afterRotation(Point v, Point r, double directionSign) {
         Point temp, normalized ;
         double angle = 0.05 * directionSign;
 
-        normalized.x = ref.y * vec.z - ref.z * vec.y;
-        normalized.y = ref.z * vec.x - ref.x * vec.z;
-        normalized.z = ref.x * vec.y - ref.y * vec.x;
+        normalized.x = r.y * v.z - r.z * v.y;
+        normalized.y = r.z * v.x - r.x * v.z;
+        normalized.z = r.x * v.y - r.y * v.x;
 
-        temp.x = vec.x * cos(angle) + normalized.x * sin(angle);
-        temp.y = vec.y * cos(angle) + normalized.y * sin(angle);
-        temp.z = vec.z * cos(angle) + normalized.z * sin(angle);
+        temp.x = v.x * cos(angle) + normalized.x * sin(angle);
+        temp.y = v.y * cos(angle) + normalized.y * sin(angle);
+        temp.z = v.z * cos(angle) + normalized.z * sin(angle);
 
         return temp;
     }
@@ -97,25 +97,25 @@ public:
 class Object {
 
 public:
-    char type = 'x';
-    double sourceFactor = 1.0, eta = 0.0;
+    char type = 'o';
     Point referencePoint;
     double height, width, length;
     double color[3];
     double coEfficients[4];
     double shine;
+    double sourceFactor = 1.0, eta = 0.0;
 
     Object() {}
 
     virtual void draw() = 0;
     
-    void setColor(double r, double g, double b) {
-        color[0] = r;
-        color[1] = g;
-        color[2] = b;
+    void setColor(double red, double green, double blue) {
+        color[0] = red;
+        color[1] = green;
+        color[2] = blue;
     }
-    void setShine(int shine) {
-        this->shine = shine;
+    void setShine(int shine1) {
+        shine = shine1;
     }
     void setCoefficients(double a, double d, double s, double r) {
         coEfficients[AMBIENT] = a;
@@ -124,7 +124,7 @@ public:
         coEfficients[REFLECTION] = r;
     }
     
-    virtual double getIntersectionT(Ray &ray) = 0;
+    virtual double getIntersection(Ray &ray) = 0;
 
     virtual Point getNormal(Point intersection) = 0;
 
@@ -167,21 +167,21 @@ public:
         glPopMatrix();
     }
 
-    double getIntersectionT(Ray &ray) {
+    double getIntersection(Ray &ray) {
 
-        Point c = referencePoint;
-        Point o = ray.start;
+        Point cen = referencePoint;
+        Point ori = ray.start;
         Point l = ray.dir;
 
-        Point d = o - c;
+        Point d = ori - cen;
         double discriminant = dotProduct(l, d) * dotProduct(l, d) - dotProduct(d, d) + length * length;
 
         if (discriminant < 0)
             return -1;
 
-        double sqrt_disc = sqrt(discriminant);
-        double t1 = -dotProduct(l, d) + sqrt_disc;
-        double t2 = -dotProduct(l, d) - sqrt_disc;
+        double res = sqrt(discriminant);
+        double t1 = -dotProduct(l, d) + res;
+        double t2 = -dotProduct(l, d) - res;
 
         return min(t1, t2);
     }
@@ -195,22 +195,23 @@ public:
 
 class Triangle : public Object {
 public:
-    Point p1, p2, p3;
     double a, b, c, d;
+    Point p1, p2, p3;
 
-    Triangle(Point p1, Point p2, Point p3) {
-        this->p1 = p1;
-        this->p2 = p2;
-        this->p3 = p3;
+
+    Triangle(Point point1, Point point2, Point point3) {
+        p1 = point1;
+        p2 = point2;
+        p3 = point3;
 
         Point AB = p2 - p1;
         Point AC = p3 - p1;
         Point temp = crossProduct(AB, AC);
 
-        this->a = temp.x;
-        this->b = temp.y;
-        this->c = temp.z;
-        this->d = this->a * p1.x + this->b * p1.y + this->c * p1.z;
+        a = temp.x;
+        b = temp.y;
+        c = temp.z;
+        d = a * p1.x + b * p1.y + c * p1.z;
     }
 
     void draw() {
@@ -229,11 +230,10 @@ public:
         return normal.normalize();
     }
 
-    double getIntersectionT(Ray &ray) {
+    double getIntersection(Ray &ray) {
         Point normal = getNormal(Point(0, 0, 0));
-
         double t;
-        bool flag = false;
+        bool boolean = false;
         double denominator = dotProduct(normal, ray.dir);
 
         if (denominator < 0.0) {
@@ -246,35 +246,34 @@ public:
 
         t = (dotProduct(normal, p1 - ray.start)) / denominator;
         if (t >= 0)
-            flag = true;
+            boolean = true;
 
-        if (!flag)
+        if (!boolean)
             return -1;
 
-        bool b1, b2, b3;
         Point intersectingPoint = ray.start + ray.dir * t;
 
         Point N = crossProduct(p2 - p1, p3 - p1);
         double area2 = N.length();
 
-        Point A3, edge1, edge2;
+        Point area, side1, side2;
 
-        edge1 = p2 - p1;
-        edge2 = intersectingPoint - p1;
-        A3 = crossProduct(edge1, edge2);
-        if (dotProduct(N, A3) < 0)
+        side1 = p2 - p1;
+        side2 = intersectingPoint - p1;
+        area = crossProduct(side1, side2);
+        if (dotProduct(N, area) < 0)
             return -1;
 
-        edge1 = p3 - p2;
-        edge2 = intersectingPoint - p2;
-        A3 = crossProduct(edge1, edge2);
-        if (dotProduct(N, A3) < 0)
+        side1 = p3 - p2;
+        side2 = intersectingPoint - p2;
+        area = crossProduct(side1, side2);
+        if (dotProduct(N, area) < 0)
             return -1;
 
-        edge1 = p1 - p3;
-        edge2 = intersectingPoint - p3;
-        A3 = crossProduct(edge1, edge2);
-        if (dotProduct(N, A3) < 0)
+        side1 = p1 - p3;
+        side2 = intersectingPoint - p3;
+        area = crossProduct(side1, side2);
+        if (dotProduct(N, area) < 0)
             return -1;
 
         return t; 
@@ -286,17 +285,17 @@ class GeneralQuadratic : public Object {
 public:
     double A1, A2, A3, A4, A5, A6, A7, A8, A9, A10;
 
-    GeneralQuadratic(double coeff[10], Point referencePoint, double length, double width, double height) {
-        this->A1 = coeff[0];
-        this->A2 = coeff[1];
-        this->A3 = coeff[2];
-        this->A4 = coeff[3];
-        this->A5 = coeff[4];
-        this->A6 = coeff[5];
-        this->A7 = coeff[6];
-        this->A8 = coeff[7];
-        this->A9 = coeff[8];
-        this->A10 = coeff[9];
+    GeneralQuadratic(double coefficients[10], Point referencePoint, double width, double height, double length) {
+        A1 = coefficients[0];
+        A2 = coefficients[1];
+        A3 = coefficients[2];
+        A4 = coefficients[3];
+        A5 = coefficients[4];
+        A6 = coefficients[5];
+        A7 = coefficients[6];
+        A8 = coefficients[7];
+        A9 = coefficients[8];
+        A10 = coefficients[9];
         this->referencePoint = referencePoint;
         this->height = height;
         this->width = width;
@@ -315,7 +314,7 @@ public:
         return normal.normalize();
     }
 
-    double getIntersectionT(Ray &ray) {
+    double getIntersection(Ray &ray) {
         double a = A1 * ray.dir.x * ray.dir.x + A2 * ray.dir.y * ray.dir.y + A3 * ray.dir.z * ray.dir.z;
         double b = 2 * (A1 * ray.start.x * ray.dir.x + A2 * ray.start.y * ray.dir.y + A3 * ray.start.z * ray.dir.z);
         double c = A1 * ray.start.x * ray.start.x + A2 * ray.start.y * ray.start.y + A3 * ray.start.z * ray.start.z;
@@ -325,7 +324,6 @@ public:
               A5 * (ray.start.y * ray.dir.z + ray.dir.y * ray.start.z) +
               A6 * (ray.start.z * ray.dir.x + ray.dir.z * ray.start.x));
         c = c + (A4 * ray.start.x * ray.start.y + A5 * ray.start.y * ray.start.z + A6 * ray.start.z * ray.start.x);
-
         b = b + (A7 * ray.dir.x + A8 * ray.dir.y + A9 * ray.dir.z);
         c = c + (A7 * ray.start.x + A8 * ray.start.y + A9 * ray.start.z + A10);
 
@@ -337,6 +335,7 @@ public:
 
         double t1 = (-b + sqrt(discriminant)) / (2.0 * a);
         double t2 = (-b - sqrt(discriminant)) / (2.0 * a);
+       // cout << t1 << " " << t2 << endl;
 
         Point intersectingPoint1 = ray.start + ray.dir * t1;
         Point intersectingPoint2 = ray.start + ray.dir * t2;
@@ -358,19 +357,19 @@ public:
         double y2 = intersectingPoint2.y;
         double z2 = intersectingPoint2.z;
 
-        bool flag1 = length > 0 && (x1 < x_min || x1 > x_max) ||
+        bool bool1 = length > 0 && (x1 < x_min || x1 > x_max) ||
                      width > 0 && (y1 < y_min || y1 > y_max) ||
                      height > 0 && (z1 < z_min || z1 > z_max);
 
-        bool flag2 = length > 0 && (x2 < x_min || x2 > x_max) ||
+        bool bool2 = length > 0 && (x2 < x_min || x2 > x_max) ||
                      width > 0 && (y2 < y_min || y2 > y_max) ||
                      height > 0 && (z2 < z_min || z2 > z_max);
 
-        if (flag1 && flag2)
+        if (bool1 && bool2)
             return -1;
-        else if (flag1)
+        else if (bool1)
             return t2;
-        else if (flag2)
+        else if (bool2)
             return t1;
         else
             return min(t1, t2);
@@ -381,17 +380,16 @@ class Floor : public Object {
 
 public:
     Point origin;
-    double floorWidth, tileWidth;
     int numberOfTiles;
-    bitmap_image texture;
+    double floorWidth, tileWidth;
 
-    Floor(double floorWidth, double tileWidth) {
-        this->floorWidth = floorWidth;
-        this->tileWidth = tileWidth;
-        this->origin = Point(-floorWidth / 2.0, -floorWidth / 2.0, 0.0);
-        this->numberOfTiles = floorWidth / tileWidth;
 
-        texture = bitmap_image("1605102_bitmap.bmp");
+    Floor(double floorWidth1, double tileWidth1) {
+        floorWidth = floorWidth1;
+        tileWidth = tileWidth1;
+        origin = Point(-floorWidth / 2.0, -floorWidth / 2.0, 0.0);
+        numberOfTiles = floorWidth / tileWidth;
+
     }
 
     void draw() {
@@ -413,7 +411,7 @@ public:
 
     Point getNormal(Point intersection) { return Point(0, 0, 1); }
 
-    double getIntersectionT(Ray &ray) {
+    double getIntersection(Ray &ray) {
         if (ray.dir.z == 0)
             return -1;
 
@@ -425,25 +423,15 @@ public:
         if ((x < 0.0 || x > floorWidth) || (y < 0.0 || y > floorWidth))
             return -1;
 
-        int pixel_x = (intersectingPoint.x - origin.x) / tileWidth;
-        int pixel_y = (intersectingPoint.y - origin.y) / tileWidth;
-        if ((pixel_x < 0.0 || pixel_x > numberOfTiles) || (pixel_y < 0.0 || pixel_y > numberOfTiles))
+        int pixelX = (intersectingPoint.x - origin.x) / tileWidth;
+        int pixelY = (intersectingPoint.y - origin.y) / tileWidth;
+        if ((pixelX < 0.0 || pixelX > numberOfTiles) || (pixelY < 0.0 || pixelY > numberOfTiles))
             return -1;
-        int c = (pixel_x + pixel_y) % 2;
-
-        unsigned char r, g, b;
-        int i, j;
-        i = (texture.width() - 1.0) / 1000.0 * x;
-        j = (texture.height() - 1.0) / 1000.0 * y;
-        texture.get_pixel(i, texture.height() - j - 1, r, g, b);
-
-        double tile_portion = 0.8;
-        double texture_portion = 1.0 - tile_portion;
-
-        color[0] = double(c) * tile_portion + (double(r) / 255.0) * texture_portion;
-        color[1] = double(c) * tile_portion + (double(g) / 255.0) * texture_portion;
-        color[2] = double(c) * tile_portion + (double(b) / 255.0) * texture_portion;
-
+        int col = (pixelX + pixelY) % 2;
+        color[0] = double(col);
+        color[1] = double(col);
+        color[2] = double(col);
+        
         return t;
     }
 };
@@ -454,18 +442,18 @@ public:
     Point lightPos;
     double color[3];
 
-    Light(Point pos, double r, double g, double b) {
-        this->lightPos = pos;
-        color[0] = r;
-        color[1] = g;
-        color[2] = b;
+    Light(Point pos, double red, double green, double blue) {
+        lightPos = pos;
+        color[0] = red;
+        color[1] = green;
+        color[2] = blue;
     }
 
     void draw() {
         glColor3f(color[0], color[1], color[2]);
         glPushMatrix();
         glTranslatef(lightPos.x, lightPos.y, lightPos.z);
-        glutSolidSphere(1.0, 50, 50);
+        glutSolidSphere(1.0, 30, 30);
         glPopMatrix();
 
         glBegin(GL_LINES);
@@ -491,7 +479,7 @@ pair<double, double> getNearest(Ray &ray) {
     double minimum = 99999999;
 
     for (int i = 0; i < objects.size(); i++) {
-        double j = objects[i]->getIntersectionT(ray);
+        double j = objects[i]->getIntersection(ray);
 
         if (j <= 0) {
             continue;
@@ -521,18 +509,18 @@ void Object::intersect(Ray &ray, double t, double currentColor[3], int level) {
         Point R = (normal * (dotProduct(L.dir, normal) * 2.0) - L.dir).normalize();
         Point V = (intersectingPoint * -1.0).normalize();
 
-        bool flag = false;
+        bool boolean = false;
 
         int totalObjects = objects.size();
         for (int j = 0; j < totalObjects; j++) {
-            double t = objects[j]->getIntersectionT(L);
+            double t = objects[j]->getIntersection(L);
             if (t > 0) {
-                flag = true;
+                boolean = true;
                 break;
             }
         }
 
-        if (!flag) {
+        if (!boolean) {
             lambert = sourceFactor * coEfficients[DIFFUSE] * dotProduct(L.dir, normal);
             phong = coEfficients[SPECULAR] * pow(dotProduct(R, V), shine);
 

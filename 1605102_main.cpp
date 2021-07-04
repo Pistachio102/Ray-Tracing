@@ -11,15 +11,17 @@ using namespace std;
 #include "1605102_classes.h"
 
 #define pi (2*acos(0.0))
-#define unit_dist 4.0
+#define unitDist 4.0
 
 
 Point eye, l, r, u;
 int recursionLevel;
 int imageWidth, imageHeight;
-#define windowWidth 800
-#define windowHeight 800
-#define viewAngle 50
+#define windowWidth 1000
+#define windowHeight 1000
+#define viewAngle 60
+
+
 void drawAxes() {
     glBegin(GL_LINES);
     {
@@ -39,6 +41,11 @@ void drawAxes() {
 
 
 void loadData() {
+
+    Object *temp = new Floor(1000, 20);
+    temp->setCoefficients(0.2, 0.2, 0.2, 0.2);
+    temp->setShine(1.5);
+    objects.push_back(temp);
 
     int totalObjects, totalLights;
     string objectType;
@@ -129,7 +136,7 @@ void loadData() {
             cin >> length >> width >> height;
             ori = Point(x, y, z);
 
-            object = new GeneralQuadratic(coefficients, ori, length, width, height);
+            object = new GeneralQuadratic(coefficients, ori, width, height, length);
 
             cin >> r >> g >> b;
             cin >> ambient >> diffuse >> specular >> reflection;
@@ -159,7 +166,7 @@ void loadData() {
 }
 
 void capture() {
-
+    cout << "Saving..." << endl;
     Color** frameBuffer;
     frameBuffer = new Color* [imageWidth];
     for (int i=0; i<imageWidth; i++) {
@@ -169,32 +176,27 @@ void capture() {
     double planeDistance = (windowHeight/2)/tan(viewAngle*pi/360);
     Point topLeft = eye + (l * planeDistance - r * (windowWidth/2) + u * (windowHeight/2));
 
-    cout << "Eye : "; eye.print();
-    cout << "Plane distance : " << planeDistance << endl;
-    cout << "topLeft : "; topLeft.print();
-    cout << "Saving..." << endl;
-
     double du = (windowWidth*1.0) / imageWidth;
     double dv = (windowHeight*1.0) / imageHeight;
 
     for (int i = 0; i < imageWidth; i++) {
         for (int j = 0; j < imageHeight; j++) {
 
-            Point direction_to_top_left = topLeft + r*i*du - u*j*dv;
+            Point dirTopLeft = topLeft + r*i*du - u*j*dv;
 
-            Ray ray(eye, direction_to_top_left - eye);
-            double dummy_color[3] = {0.0, 0.0, 0.0};
+            Ray ray(eye, dirTopLeft - eye);
+            double dummyColor[3] = {0.0, 0.0, 0.0};
 
             pair<double, double> pair = getNearest(ray);
             int nearest = pair.first;
             double t_min = pair.second;
 
             if(nearest!=-1) {
-                objects[nearest]->intersect(ray, t_min, dummy_color, 1);
+                objects[nearest]->intersect(ray, t_min, dummyColor, 1);
             }
-            frameBuffer[i][j].r = dummy_color[0];
-            frameBuffer[i][j].g = dummy_color[1];
-            frameBuffer[i][j].b = dummy_color[2];
+            frameBuffer[i][j].r = dummyColor[0];
+            frameBuffer[i][j].g = dummyColor[1];
+            frameBuffer[i][j].b = dummyColor[2];
         }
     }
 
@@ -208,44 +210,43 @@ void capture() {
             image.set_pixel(i, j, r*255, g*255, b*255);
         }
     }
-
-    image.save_image("out.bmp");
-
-    cout << "\tSaved\n";
+    image.save_image("1605102_out.bmp");
+    cout << "Saved\n";
 }
 
 void freeMemory() {
     vector<Light*>().swap(lights);
     vector<Object*>().swap(objects);
 }
+
 void keyboardListener(unsigned char key, int x, int y) {
     switch (key) {
         case '0':
             capture();
             break;
         case '1':
-            l = rotate(l, u, 1);
-            r = rotate(r, u, 1);
+            l = afterRotation(l, u, 1);
+            r = afterRotation(r, u, 1);
             break;
         case '2':
-            l = rotate(l, u, -1);
-            r = rotate(r, u, -1);
+            l = afterRotation(l, u, -1);
+            r = afterRotation(r, u, -1);
             break;
         case '3':
-            u = rotate(u, r, 1);
-            l = rotate(l, r, 1);
+            u = afterRotation(u, r, 1);
+            l = afterRotation(l, r, 1);
             break;
         case '4':
-            u = rotate(u, r, -1);
-            l = rotate(l, r, -1);
+            u = afterRotation(u, r, -1);
+            l = afterRotation(l, r, -1);
             break;
         case '5':
-            u = rotate(u, l, 1);
-            r = rotate(r, l, 1);
+            u = afterRotation(u, l, 1);
+            r = afterRotation(r, l, 1);
             break;
         case '6':
-            u = rotate(u, l, -1);
-            r = rotate(r, l, -1);
+            u = afterRotation(u, l, -1);
+            r = afterRotation(r, l, -1);
             break;
 
 
@@ -258,22 +259,22 @@ void keyboardListener(unsigned char key, int x, int y) {
 void specialKeyListener(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_DOWN:
-            eye = eye - l * unit_dist;
+            eye = eye - l * unitDist;
             break;
         case GLUT_KEY_UP:
-            eye = eye + l * unit_dist;
+            eye = eye + l * unitDist;
             break;
         case GLUT_KEY_RIGHT:
-            eye = eye + r * unit_dist;
+            eye = eye + r * unitDist;
             break;
         case GLUT_KEY_LEFT:
-            eye = eye - r * unit_dist;
+            eye = eye - r * unitDist;
             break;
         case GLUT_KEY_PAGE_UP:
-            eye = eye + u * unit_dist;
+            eye = eye + u * unitDist;
             break;
         case GLUT_KEY_PAGE_DOWN:
-            eye = eye - u * unit_dist;
+            eye = eye - u * unitDist;
             break;
         case GLUT_KEY_INSERT:
             break;
@@ -284,12 +285,10 @@ void specialKeyListener(int key, int x, int y) {
 }
 
 
-void mouseListener(int button, int state, int x, int y) {    //x, y is the x-y of the screen (2D)
+void mouseListener(int button, int state, int x, int y) {
     switch (button) {
         case GLUT_LEFT_BUTTON:
-            if (state == GLUT_DOWN) {        // 2 times?? in ONE click? -- solution is checking DOWN or UP
-                //drawaxes = 1 - drawaxes;
-            }
+            //........
             break;
 
         case GLUT_RIGHT_BUTTON:
@@ -308,34 +307,13 @@ void mouseListener(int button, int state, int x, int y) {    //x, y is the x-y o
 
 void display() {
 
-    //clear the display
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0, 0, 0, 0);    //color black
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    /********************
-    / set-up camera here
-    ********************/
-    //load the correct matrix -- MODEL-VIEW matrix
     glMatrixMode(GL_MODELVIEW);
-
-    //initialize the matrix
     glLoadIdentity();
-
-    //now give three info
-    //1. where is the camera (viewer)?
-    //2. where is the camera looking?
-    //3. Which direction is the camera's UP direction?
     gluLookAt(eye.x, eye.y, eye.z, eye.x + l.x, eye.y + l.y, eye.z + l.z, u.x, u.y, u.z);
-
-    //again select MODEL-VIEW
     glMatrixMode(GL_MODELVIEW);
-
-
-    /****************************
-    / Add your objects from here
-    ****************************/
-    //add objects
 
     drawAxes();
 
@@ -346,7 +324,6 @@ void display() {
         lights[i]->draw();
 
 
-    //ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
     glutSwapBuffers();
 }
 
@@ -365,12 +342,6 @@ void init() {
     r = {1.0, 0.0, 0.0};
     u = {0.0, 0.0, 1.0};
 
-    //initialize floor
-    Object *floor = new Floor(1000, 20);
-    floor->setCoefficients(0.3, 0.3, 0.3, 0.1);
-    floor->setShine(1.0);
-    objects.push_back(floor);
-
 
     loadData();
 //    cout << lights[0].lightPos.x << lights[0].lightPos.y << lights[0].lightPos.z << endl;
@@ -381,22 +352,13 @@ void init() {
     //clear the screen
     glClearColor(0, 0, 0, 0);
 
-
-    /************************
-    / set-up projection here
-    ************************/
-    //load the PROJECTION matrix
     glMatrixMode(GL_PROJECTION);
 
     //initialize the matrix
     glLoadIdentity();
 
-    //give PERSPECTIVE parameters
     gluPerspective(80, 1, 1, 1000.0);
-    //field of view in the Y (vertically)
-    //aspect ratio that determines the field of view in the X direction (horizontally)
-    //near distance
-    //far distance
+
 }
 
 
@@ -406,7 +368,7 @@ int main(int argc, char **argv) {
     glutInitWindowPosition(0, 0);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);    //Depth, Double buffer, RGB color
 
-    glutCreateWindow("My OpenGL Program");
+    glutCreateWindow("1605102: My OpenGL Program");
 
     init();
 
